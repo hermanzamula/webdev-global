@@ -93,22 +93,15 @@ var window = {};
 
             var paramNames = Object.keys(parameterSchema);
 
-            paramNames.sort(function (a) { //put required at the beginning
-                return (a === "required") ? 0 : 1;
-            });
+            var required = paramNames.splice(paramNames.indexOf("required"), 1)[0];
 
-            for (var i = 0; i < paramNames.length; i++) {
+            if (isNone(data)) {
+                return !(!isNone(required) && (String(parameterSchema["required"]) === "true"));
+            }
 
-                var paramName = paramNames[i];
+            return paramNames.map(function map(paramName) {
+
                 var paramValue = parameterSchema[paramName];
-
-                if (paramName === "required") {
-                    if (Boolean(paramValue) === true && (data == null || data == undefined)) {
-                        return false;
-                    }
-                    continue;
-                }
-
                 var validator = validators[paramName];
 
                 if (isNone(validator)) {
@@ -116,15 +109,14 @@ var window = {};
                     return true; //Ignore unknown field for validation;
                 }
 
-                var fieldValid = validator.call(this, paramValue, data);
+                return validator.call(this, paramValue, data);
 
-                if (!fieldValid) {
-                    return false;
-                }
+            }).reduce(function (a, b) {
 
-            }
+                return a && b
 
-            return true;
+            }, true);
+
         }
 
         function registerModel(name, model) {
@@ -194,7 +186,7 @@ var window = {};
 (window);
 
 window.ModelValidator.registerModel("user", {
-    id: {type: "uuid", required: true},
+    id: {type: "uuid", required: "true"},
     name: {type: "string", min: 1, max: 64},
     createdAt: {type: "date"},
     counter: {type: "number", min: 0, max: 64}
